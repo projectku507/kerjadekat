@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KerjaDekat - Marketplace Jasa Lokal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <h1>KerjaDekat</h1>
+                <p>Marketplace Jasa Lokal Terpercaya</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="nama@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Masukkan password" required>
+                </div>
+
+                <button type="submit" class="btn-primary btn-lg">Masuk</button>
+
+                <div class="divider">atau</div>
+
+                <a href="register.html" class="btn-secondary btn-lg">Daftar Akun Baru</a>
+
+                <p id="loginError" class="error-message"></p>
+            </form>
+        </div>
+
+        <div class="loading-spinner" id="loginSpinner" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const spinner = document.getElementById('loginSpinner');
+            const errorEl = document.getElementById('loginError');
+
+            errorEl.textContent = '';
+            spinner.style.display = 'flex';
+
+            try {
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                localStorage.setItem('userId', userCredential.user.uid);
+                window.location.href = 'home.html';
+            } catch (error) {
+                errorEl.textContent = 'Email atau password salah. Coba lagi.';
+                console.error('Login error:', error);
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+
+        // Cek jika sudah login
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'home.html';
+            }
+        });
+    </script>
+</body>
+</html>
