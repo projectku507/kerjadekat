@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Akun - KerjaDekat</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="logo-section">
+                <h1>KerjaDekat</h1>
+                <p>Buat Akun Baru</p>
+            </div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Nama Lengkap *</label>
+                    <input type="text" id="regName" placeholder="Masukkan nama lengkap" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="regEmail" placeholder="nama@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" id="regPassword" placeholder="Minimal 6 karakter" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nomor WhatsApp *</label>
+                    <input type="tel" id="regWhatsapp" placeholder="62812xxxxx" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Lokasi (Kota) *</label>
+                    <input type="text" id="regLocation" placeholder="Jakarta, Bandung, dll" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Kategori Pekerjaan *</label>
+                    <select id="regCategory" required>
+                        <option value="">Pilih kategori</option>
+                        <option value="cleaning">Pembersihan</option>
+                        <option value="repair">Reparasi</option>
+                        <option value="tutoring">Les/Tutor</option>
+                        <option value="delivery">Pengiriman</option>
+                        <option value="cooking">Masak/Katering</option>
+                        <option value="beauty">Kecantikan</option>
+                        <option value="design">Design</option>
+                        <option value="writing">Menulis</option>
+                        <option value="translation">Terjemahan</option>
+                        <option value="other">Lainnya</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Foto Profil (Opsional)</label>
+                    <input type="file" id="regPhoto" accept="image/*">
+                    <small>Ukuran max 2MB. Jika tidak upload, akan pakai avatar default.</small>
+                </div>
+
+                <button type="submit" class="btn-primary btn-lg">Daftar</button>
+
+                <div class="divider">atau</div>
+
+                <a href="index.html" class="btn-secondary btn-lg">Sudah Punya Akun? Masuk</a>
+
+                <p id="registerError" class="error-message"></p>
+                <p id="registerSuccess" class="success-message"></p>
+            </form>
+        </div>
+
+        <div class="loading-spinner" id="registerSpinner" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzIwQzk5NyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LWZhbWlseT0iQXJpYWwiPkk8L3RleHQ+PC9zdmc+';
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const whatsapp = document.getElementById('regWhatsapp').value.trim();
+            const location = document.getElementById('regLocation').value.trim();
+            const category = document.getElementById('regCategory').value;
+            const photoFile = document.getElementById('regPhoto').files[0];
+
+            const errorEl = document.getElementById('registerError');
+            const successEl = document.getElementById('registerSuccess');
+            const spinner = document.getElementById('registerSpinner');
+
+            errorEl.textContent = '';
+            successEl.textContent = '';
+
+            if (!name || !email || !password || !whatsapp || !location || !category) {
+                errorEl.textContent = 'Semua field wajib diisi!';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorEl.textContent = 'Password minimal 6 karakter!';
+                return;
+            }
+
+            spinner.style.display = 'flex';
+
+            try {
+                // Buat akun Firebase
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                const uid = userCredential.user.uid;
+
+                let photoURL = DEFAULT_AVATAR;
+
+                // Upload foto jika ada
+                if (photoFile) {
+                    try {
+                        const storageRef = firebase.storage().ref('users/' + uid + '/profile');
+                        await storageRef.put(photoFile);
+                        photoURL = await storageRef.getDownloadURL();
+                    } catch (uploadError) {
+                        console.warn('Foto upload gagal, gunakan default:', uploadError);
+                    }
+                }
+
+                // Simpan data user ke Firestore
+                await firebase.firestore().collection('users').doc(uid).set({
+                    uid: uid,
+                    name: name,
+                    email: email,
+                    whatsapp: whatsapp,
+                    location: location,
+                    jobCategory: category,
+                    photo: photoURL,
+                    isVerified: false,
+                    isPremium: false,
+                    averageRating: 0,
+                    totalReviews: 0,
+                    completedJobs: 0,
+                    createdAt: new Date()
+                });
+
+                localStorage.setItem('userId', uid);
+                successEl.textContent = 'Daftar berhasil! Tunggu sebentar...';
+                
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1500);
+
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    errorEl.textContent = 'Email sudah terdaftar!';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorEl.textContent = 'Format email tidak valid!';
+                } else {
+                    errorEl.textContent = 'Daftar gagal. Coba lagi: ' + error.message;
+                }
+                console.error('Register error:', error);
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+
+        // Cek jika sudah login
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'home.html';
+            }
+        });
+    </script>
+</body>
+</html>
